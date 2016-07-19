@@ -1,18 +1,7 @@
 #Directories
 report*
 data*
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-old
-=======
-=======
->>>>>>> b261f52... chore: removing data files from repo
 old/
->>>>>>> b261f52... chore: removing data files from repo
-=======
-old/
->>>>>>> secret
 .DS_Store
 ml_toolbox/
 

@@ -78,8 +78,9 @@ def run_cases(cases, groupName):
         
         # Create submissions file if X_test is provided as 7th element
         if len(c)>7:
-            X_test = c[7]
-            create_submission_file(clf, X_test, score, groupName + " - " + casename)
+            X_test = c[8]
+            test_device_ids = c[7]
+            create_submission_file(clf, test_device_ids, X_test, score, groupName + " - " + casename)
         
     # Approximate memory usage by pickle dump
         
@@ -144,14 +145,17 @@ def get_xgboost_classifier(X_train, y_train, X_val, y_val, params, rs=123, outpu
     else:
         return gbm
 
-def create_submission_file(clf, X_test, score, description):
+def create_submission_file(clf,test_device_ids, X_test, score, description):
     
     y_test = clf.predict(xgb.DMatrix(X_test))
     
-    kag = KaggleResult(test['device_id'], prediction=y_test, score=score, description=description, sub_path=outputdir)
+    kag = KaggleResult(test_device_ids, prediction=y_test, score=score, description=description, sub_path=outputdir)
     
     if kag.validate() and upload_to_kaggle:
-        kag.upload(description)
+        try:
+            kag.upload(description)
+        except:
+            pass
    
 # --------------------
 # - Support functions 
@@ -195,15 +199,13 @@ def compare_gbtree_linear():
     
 def compare_test_sizes():
     params = {'seed':rs, 
-        'n_estimators':60,
+        'n_estimators':150,
         'eta':0.1,
-        'max-depth':3,
+        'max_depth':5,
         'subsample':0.7, 
         'colsample_bytree':0.7,
         'num_class': 12}  
-    
-    params = {'seed':rs, 'n_estimators':60,'eta':0.1,'max-depth':3,'subsample':0.7, 'colsample_bytree':0.7, "eval_metric": "mlogloss","objective": "multi:softprob", "num_class": 12}  
-       
+           
     cases=[]
 
     # Base case    
@@ -230,13 +232,28 @@ def compare_max_depth():
 
     # Base case    
     X_train, X_val, y_train, y_val = train_test_split( X, y, test_size=0.3, random_state=rs, stratify=y)
-    cases.append( ('2',  X_train, y_train, X_val, y_val, {'seed':rs, 'n_estimators':100,'eta':0.1,'max_depth':2,'subsample':0.7, 'colsample_bytree':0.7, "eval_metric": "mlogloss","objective": "multi:softprob", "num_class": 12}, "xgb") )
-    cases.append( ('3',  X_train, y_train, X_val, y_val, {'seed':rs, 'n_estimators':100,'eta':0.1,'max_depth':3,'subsample':0.7, 'colsample_bytree':0.7, "eval_metric": "mlogloss","objective": "multi:softprob", "num_class": 12}, 'xgb') )
-    cases.append( ('4',  X_train, y_train, X_val, y_val, {'seed':rs, 'n_estimators':100,'eta':0.1,'max_depth':4,'subsample':0.7, 'colsample_bytree':0.7, "eval_metric": "mlogloss","objective": "multi:softprob", "num_class": 12}, 'xgb') )
-    cases.append( ('5',  X_train, y_train, X_val, y_val, {'seed':rs, 'n_estimators':100,'eta':0.1,'max_depth':5,'subsample':0.7, 'colsample_bytree':0.7, "eval_metric": "mlogloss","objective": "multi:softprob", "num_class": 12}, 'xgb') )
-    cases.append( ('6',  X_train, y_train, X_val, y_val, {'seed':rs, 'n_estimators':100,'eta':0.1,'max_depth':6,'subsample':0.7, 'colsample_bytree':0.7, "eval_metric": "mlogloss","objective": "multi:softprob", "num_class": 12}, 'xgb') )
+    cases.append( ('2',  X_train, y_train, X_val, y_val, {'seed':rs, 'n_estimators':150,'eta':0.1,'max_depth':2,'subsample':0.7, 'colsample_bytree':0.7, "eval_metric": "mlogloss","objective": "multi:softprob", "num_class": 12}, "xgb", test_device_ids, X_test) )
+    cases.append( ('3',  X_train, y_train, X_val, y_val, {'seed':rs, 'n_estimators':150,'eta':0.1,'max_depth':3,'subsample':0.7, 'colsample_bytree':0.7, "eval_metric": "mlogloss","objective": "multi:softprob", "num_class": 12}, 'xgb', test_device_ids, X_test) )
+    cases.append( ('4',  X_train, y_train, X_val, y_val, {'seed':rs, 'n_estimators':150,'eta':0.1,'max_depth':4,'subsample':0.7, 'colsample_bytree':0.7, "eval_metric": "mlogloss","objective": "multi:softprob", "num_class": 12}, 'xgb', test_device_ids, X_test) )
+    cases.append( ('5',  X_train, y_train, X_val, y_val, {'seed':rs, 'n_estimators':150,'eta':0.1,'max_depth':5,'subsample':0.7, 'colsample_bytree':0.7, "eval_metric": "mlogloss","objective": "multi:softprob", "num_class": 12}, 'xgb', test_device_ids, X_test) )
+    cases.append( ('6',  X_train, y_train, X_val, y_val, {'seed':rs, 'n_estimators':150,'eta':0.1,'max_depth':6,'subsample':0.7, 'colsample_bytree':0.7, "eval_metric": "mlogloss","objective": "multi:softprob", "num_class": 12}, 'xgb', test_device_ids, X_test) )
     
     run_cases(cases,'Comparison test sizes') 
+    
+
+def compare_max_depth_large():
+           
+    cases=[]
+
+    # Base case    
+    X_train, X_val, y_train, y_val = train_test_split( X, y, test_size=0.3, random_state=rs, stratify=y)
+    cases.append( ('max-depth: 6',  X_train, y_train, X_val, y_val, {'seed':rs, 'n_estimators':150,'eta':0.1,'max_depth':6,'subsample':0.7, 'colsample_bytree':0.7, "eval_metric": "mlogloss","objective": "multi:softprob", "num_class": 12}, "xgb", test_device_ids, X_test) )
+    cases.append( ('max-depth: 8',  X_train, y_train, X_val, y_val, {'seed':rs, 'n_estimators':150,'eta':0.1,'max_depth':8,'subsample':0.7, 'colsample_bytree':0.7, "eval_metric": "mlogloss","objective": "multi:softprob", "num_class": 12}, 'xgb', test_device_ids, X_test) )
+    cases.append( ('max-depth: 10',  X_train, y_train, X_val, y_val, {'seed':rs, 'n_estimators':150,'eta':0.1,'max_depth':10,'subsample':0.7, 'colsample_bytree':0.7, "eval_metric": "mlogloss","objective": "multi:softprob", "num_class": 12}, 'xgb', test_device_ids, X_test) )
+    cases.append( ('max-depth: 12',  X_train, y_train, X_val, y_val, {'seed':rs, 'n_estimators':150,'eta':0.1,'max_depth':12,'subsample':0.7, 'colsample_bytree':0.7, "eval_metric": "mlogloss","objective": "multi:softprob", "num_class": 12}, 'xgb', test_device_ids, X_test) )
+    cases.append( ('max-depth: 14',  X_train, y_train, X_val, y_val, {'seed':rs, 'n_estimators':150,'eta':0.1,'max_depth':14,'subsample':0.7, 'colsample_bytree':0.7, "eval_metric": "mlogloss","objective": "multi:softprob", "num_class": 12}, 'xgb', test_device_ids, X_test) )
+    
+    run_cases(cases,'Comparison max-depth') 
 
 
 
@@ -272,8 +289,17 @@ if __name__ == "__main__":
     X = train.drop(['device_id','gender','age','group'],axis=1)
     y = train['group']
     
+    test = pd.read_csv(inputdir + 'gender_age_test.csv', dtype={'device_id': np.str})
+    
+    test = pd.merge(test, pbd, how='left', on='device_id', left_index=True)
+    test = pd.merge(test, app_cat_per_device, how='left', on='device_id')
+    test.fillna(-1, inplace=True)
+    
+    X_test = test.drop('device_id', axis=1)
+    test_device_ids = test['device_id']
 
-    compare_max_depth()
+    #compare_max_depth_large()
+    compare_test_sizes()
     
     # Normalize a
     

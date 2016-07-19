@@ -129,13 +129,15 @@ if __name__ == "__main__":
     app_cat_per_device = pd.merge(app_per_device, appcats_sparse, how='left', left_index=True, right_index=True).groupby('device_id').sum()
     app_cat_per_device.to_csv(dir_out + 'device_app_cats.csv')
     
-    print('Reading device info...')
+    print('Reading train device info...')
     train = pd.read_csv(dir_source + 'gender_age_train.csv')
     
     print('Shape app_cat_per_device before merge: ' + str(app_cat_per_device.shape))
     print('Shape train before merge: ' + str(train.shape))
     train = pd.merge(train,app_cat_per_device,how='inner',left_on='device_id', right_index=True)
     print('Shape train after merge: ' + str(train.shape))
+    
+    #train.to_csv(dir_out + 'device_app_cats_train.csv')
     
     # Now we are finally ready to do analysis
     print train.groupby('gender').size()
@@ -158,6 +160,12 @@ if __name__ == "__main__":
     plt.ylabel('Average total app count')
     plt.tight_layout()
     plt.grid()
+    
+    #print('Reading test device info...')
+    #test = pd.read_csv(dir_source + 'gender_age_test.csv')
+    #test = pd.merge(test,app_cat_per_device,how='inner',left_on='device_id', right_index=True)
+    
+    #test.to_csv(dir_out + 'device_app_cats_test.csv')
     
     
     

@@ -16,143 +16,11 @@ from sklearn.cross_validation import train_test_split
 
 from ml_toolbox.kaggle import KaggleResult
 from ml_toolbox.plot import newfigure
+from ml_toolbox.runner import CaseRunner
 
 
 import xgboost as xgb 
 
-# --------------------
-# - Basic methods required to run cases 
-# --------------------
-
-def run_case(case):
-    name = case[0]
-    X_train = case[1]
-    y_train = case[2]
-    X_val = case[3]
-    y_val = case[4]
-    clfparams = case[5]
-    classifier = case[6]
-    
-    print("Running case: %s" % name)
-    
-    if classifier=="xgb":
-        return get_xgboost_classifier(X_train, y_train, X_val, y_val, clfparams, output_eval=True)
-    
-def run_cases(cases, groupName):
-    
-    print("Running %s" % groupName)    
-    print("")
-    
-    names = [x[0] for x in cases]
-    
-    scores = []
-    clfs = []
-    times_t = []
-    times_p = []
-    
-    for c in cases:
-        
-        classifier = c[6]
-        casename = c[0]
-        
-        X_val = c[3]
-        y_val = c[4]
-        
-        s = time.time()      
-        
-        # Train model
-        (clf,df_eval) = run_case(c)
-        clfs.append( clf )
-        times_t.append( time.time()-s )
-        
-        plot_cv_curves(df_eval, groupName + " - " + casename, outputdir)
-        
-        # Calculate score
-        s = time.time()  
-        if classifier=="xgb":
-            score = report_result(clf, X_val, y_val)
-            scores.append( score )
-        else:
-            scores.append( report_result(clf, X_val, y_val) )
-        times_p.append( time.time()-s )
-        
-        # Create submissions file if X_test is provided as 7th element
-        if len(c)>7:
-            X_test = c[7]
-            create_submission_file(clf, X_test, score, groupName + " - " + casename)
-        
-    # Approximate memory usage by pickle dump
-        
-    width = 0.5    
-    
-    newfigure(groupName)
-    plt.bar(np.arange(len(cases)),scores, width)
-    plt.xticks(np.arange(len(cases))+width/2, names, rotation='vertical')
-    plt.ylabel("mllogloss Score")
-    plt.ylim(ylim_logloss)
-    plt.xlim([-width,len(cases)])
-    plt.tight_layout()
-    plt.grid()
-    
-    ax = plt.gca()
-    rects = ax.patches
-    for rect, label in zip(rects, scores):
-        height = rect.get_height()
-        ax.text(rect.get_x() + rect.get_width()/2, height, "{:.4f}".format(label), ha='center', va='bottom')
-        
-    plt.savefig(outputdir + '%s_logloss.png' % groupName)
-
-def report_result(clf, X_test, y_true):
-    if str(type(clf)) == "<class 'xgboost.core.Booster'>":
-        y_pred = clf.predict(xgb.DMatrix(X_test))  
-    
-    return log_loss(y_true, y_pred)
-    
-def plot_cv_curves(df, identifier, path):
-    newfigure(str(identifier))
-    plt.plot(df['Eval set'],'g',label='Validation set')
-    plt.plot(df['Train set'],'r',label='Train set')
-    plt.grid()
-    plt.xlabel('Boosting round')
-    plt.ylabel('Logloss Score')
-    plt.legend()  
-    plt.savefig(path + 'eval_curves_' + str(identifier) + '.png')
-
-def get_xgboost_classifier(X_train, y_train, X_val, y_val, params, rs=123, output_eval=False):    
-    
-    if "objective" not in params: params["objective"] = "multi:softprob"
-    if "booster" not in params: params["booster"] = "gbtree"
-    if "eval_metric" not in params: params["eval_metric"] =  "mlogloss"
-    
-    dtrain = xgb.DMatrix(X_train, y_train)
-    dvalid = xgb.DMatrix(X_val, y_val)
-    watchlist = [(dtrain, 'train'), (dvalid, 'eval')]
-    evals_result = {}
-    gbm = xgb.train(params, dtrain, params['n_estimators'], evals=watchlist, early_stopping_rounds=20, verbose_eval=True, evals_result=evals_result)
-    
-    
-    if output_eval:
-        test_scores = evals_result['eval'][params["eval_metric"]]
-        train_scores = evals_result['train'][params["eval_metric"]]
-        
-        df = pd.DataFrame()
-        
-        df['Eval set'] = test_scores
-        df['Train set'] = train_scores
-        
-        return gbm, df
-    else:
-        return gbm
-
-def create_submission_file(clf, X_test, score, description):
-    
-    y_test = clf.predict(xgb.DMatrix(X_test))
-    
-    kag = KaggleResult(test['device_id'], prediction=y_test, score=score, description=description, sub_path=outputdir)
-    
-    if kag.validate() and upload_to_kaggle:
-        kag.upload(description)
-   
 # --------------------
 # - Support functions 
 # --------------------
@@ -222,7 +90,7 @@ def compare_phone_brand_encoding():
     X_train, X_val, y_train, y_val = train_test_split( X_freq, y, test_size=0.3, random_state=rs, stratify=y)
     cases.append( ("onehot freq enco", X_train, y_train, X_val, y_val, params, "xgb") )
     
-    run_cases(cases,"Comparison phone brand model encoding") 
+    #run_cases(cases,"Comparison phone brand model encoding") 
 
 def compare_gbtree_linear():
     params = {'seed':rs, 
@@ -233,20 +101,16 @@ def compare_gbtree_linear():
         'colsample_bytree':0.7,
         'num_class': 12}  
     
-    params = {'seed':rs, 'n_estimators':60,'eta':0.1,'max-depth':3,'subsample':0.7, 'colsample_bytree':0.7, "eval_metric": "mlogloss","objective": "multi:softprob", "num_class": 12}  
-       
-    cases=[]
-
-    # Base case    
-    X_train, X_val, y_train, y_val = train_test_split( X, y, test_size=0.3, random_state=rs, stratify=y)
-    cases.append( ("base",  X_train, y_train, X_val, y_val, params, "xgb") )
+    params = {'seed':rs, 'n_estimators':5,'eta':0.1,'max-depth':3,'subsample':0.7, 'colsample_bytree':0.7, "eval_metric": "mlogloss","objective": "multi:softprob", "num_class": 12}  
     
-    params2 = params.copy()
-    params2['booster'] = 'gblinear'
-    cases.append( ('base',  X_train, y_train, X_val, y_val, params2, 'xgb') )
+    cr = CaseRunner('tester', outputdir)
     
-    run_cases(cases,'Comparison gbtree gblinear') 
-
+    #cr.add_case()
+    cr.add_case('test1',X,y,"xgb",params, testsize=0.1, random_state=rs, X_test=X_test, ids_test=x_test)  
+    cr.add_case('test2',X,y,"xgb",params, testsize=0.2, random_state=rs, X_test=X_test, ids_test=x_test)  
+    cr.add_case('test3',X,y,"xgb",params, testsize=0.3, random_state=rs, X_test=X_test, ids_test=x_test)
+    
+    cr.run_cases()
 
 
 if __name__ == "__main__":
@@ -286,6 +150,8 @@ if __name__ == "__main__":
     y = train['group']
     
     X_test = test[['phone_brand','device_model']]
+    x_test = test['device_id']
+    
     
     # Hardly any difference (freq encoding slightly better)
     #compare_phone_brand_encoding()

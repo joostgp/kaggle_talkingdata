@@ -103,21 +103,7 @@ def run_cases(cases, groupName):
         
     plt.savefig(outputdir + '%s_logloss.png' % groupName)
 
-def report_result(clf, X_test, y_true):
-    if str(type(clf)) == "<class 'xgboost.core.Booster'>":
-        y_pred = clf.predict(xgb.DMatrix(X_test))  
-    
-    return log_loss(y_true, y_pred)
-    
-def plot_cv_curves(df, identifier, path):
-    newfigure(str(identifier))
-    plt.plot(df['Eval set'],'g',label='Validation set')
-    plt.plot(df['Train set'],'r',label='Train set')
-    plt.grid()
-    plt.xlabel('Boosting round')
-    plt.ylabel('Logloss Score')
-    plt.legend()  
-    plt.savefig(path + 'eval_curves_' + str(identifier) + '.png')
+
 
 def get_xgboost_classifier(X_train, y_train, X_val, y_val, params, rs=123, output_eval=False):    
     
@@ -260,7 +246,7 @@ def compare_subsample():
     cases=[]
 
     # Base case    
-    X_train, X_val, y_train, y_val = train_test_split( X, y, test_size=0.3, random_state=rs, stratify=y)
+    X_train, X_val, y_train, y_val = train_test_split( X, y, test_size=0.1, random_state=rs, stratify=y)
     cases.append( ('subsample: 1',  X_train, y_train, X_val, y_val, {'seed':rs, 'n_estimators':150,'eta':0.1,'max_depth':6,'subsample':1, 'colsample_bytree':0.7, "eval_metric": "mlogloss","objective": "multi:softprob", "num_class": 12}, "xgb", test_device_ids, X_test) )
     cases.append( ('subsample: 0.9',  X_train, y_train, X_val, y_val, {'seed':rs, 'n_estimators':150,'eta':0.1,'max_depth':6,'subsample':0.9, 'colsample_bytree':0.7, "eval_metric": "mlogloss","objective": "multi:softprob", "num_class": 12}, 'xgb', test_device_ids, X_test) )
     cases.append( ('subsample: 0.8',  X_train, y_train, X_val, y_val, {'seed':rs, 'n_estimators':150,'eta':0.1,'max_depth':6,'subsample':0.8, 'colsample_bytree':0.7, "eval_metric": "mlogloss","objective": "multi:softprob", "num_class": 12}, 'xgb', test_device_ids, X_test) )
@@ -291,7 +277,7 @@ def do_test_run():
     # Base case    
     X_train, X_val, y_train, y_val = train_test_split( X, y, test_size=0.1, random_state=rs, stratify=y)
     
-    cases.append( ('max-depth: 6',  X_train, y_train, X_val, y_val, {'seed':rs, 'n_estimators':150,'eta':0.1,'max_depth':6,'subsample':0.7, 'colsample_bytree':1, "eval_metric": "mlogloss","objective": "multi:softprob", "num_class": 12}, 'xgb', test_device_ids, X_test) )
+    cases.append( ('no event features',  X_train, y_train, X_val, y_val, {'seed':rs, 'n_estimators':1500,'eta':0.1,'max_depth':6,'subsample':0.8, 'colsample_bytree':1, "eval_metric": "mlogloss","objective": "multi:softprob", "num_class": 12}, 'xgb', test_device_ids, X_test) )
 
     run_cases(cases,'test-run brands, apps cats, events') 
 
@@ -302,7 +288,7 @@ if __name__ == "__main__":
     outputdir = './report_events_apps/'
     rs = 123
     
-    upload_to_kaggle = False
+    upload_to_kaggle = True
     
     ylim_logloss = [2.2,2.6]
     
@@ -346,11 +332,12 @@ if __name__ == "__main__":
     
     X_test = test.drop('device_id', axis=1)
     test_device_ids = test['device_id']
-
+    
+    do_test_run()
     #compare_max_depth_large()
-    compare_subsample()
-    compare_colsample()
-    compare_max_depth()
+    #compare_subsample()
+    #compare_colsample()
+    #compare_max_depth()
     
     # Normalize a
     

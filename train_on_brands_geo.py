@@ -44,9 +44,9 @@ def compare_effect_geo():
         'colsample_bytree':0.7,
         'num_class': 12}  
     
-    cr = CaseRunner('compare_features', outputdir)
+    cr = CaseRunner('compare_features2', outputdir)
     
-    cr.submit_to_kaggle = True
+    cr.submit_to_kaggle = False
     
     #feat = ['phone_brand']
     #cr.add_case('phone_brand',train[feat],y,"xgb",params, testsize=0.1, random_state=rs, X_test=test[feat], ids_test=test['device_id'])
@@ -56,10 +56,25 @@ def compare_effect_geo():
     cr.add_case('brand + travel',train[feat],y,"xgb",params, testsize=0.1, random_state=rs, X_test=test[feat], ids_test=test['device_id']) 
     feat = ['phone_brand','device_model','close_to_city']     
     cr.add_case('brand + city',train[feat],y,"xgb",params, testsize=0.1, random_state=rs, X_test=test[feat], ids_test=test['device_id']) 
-    feat = ['phone_brand','device_model']  + close_cols
+    feat = ['phone_brand','device_model','travel_dist']  + close_cols
     cr.add_case('brand + cities',train[feat],y,"xgb",params, testsize=0.1, random_state=rs, X_test=test[feat], ids_test=test['device_id']) 
-    feat = ['phone_brand','device_model']  + dist_cols
+    feat = ['phone_brand','device_model','travel_dist','close_to_city']
     cr.add_case('brand + distance',train[feat],y,"xgb",params, testsize=0.1, random_state=rs, X_test=test[feat], ids_test=test['device_id']) 
+    
+    cr.run_cases()
+    
+def compare_effect_min_child_weight():
+    #params = {'min_child_weight': 1,'seed':rs, 'n_estimators':500,'eta':0.01,'max-depth':6,'subsample':0.8, 'colsample_bytree':0.7,'num_class': 12}  
+    
+    cr = CaseRunner('effect_min_child_weight', outputdir)
+    
+    feat = ['phone_brand','device_model','close_to_city'] 
+    
+    cr.add_case('m child w:  1',train[feat],y,"xgb",{'min_child_weight': 1,'seed':rs, 'n_estimators':500,'eta':0.01,'max-depth':6,'subsample':0.8, 'colsample_bytree':0.7,'num_class': 12} , testsize=0.1, random_state=rs)    
+    cr.add_case('m child w:  2',train[feat],y,"xgb",{'min_child_weight': 2,'seed':rs, 'n_estimators':500,'eta':0.01,'max-depth':6,'subsample':0.8, 'colsample_bytree':0.7,'num_class': 12} , testsize=0.1, random_state=rs) 
+    cr.add_case('m child w:  5',train[feat],y,"xgb",{'min_child_weight': 5,'seed':rs, 'n_estimators':500,'eta':0.01,'max-depth':6,'subsample':0.8, 'colsample_bytree':0.7,'num_class': 12} , testsize=0.1, random_state=rs) 
+    cr.add_case('m child w: 10',train[feat],y,"xgb",{'min_child_weight': 10,'seed':rs, 'n_estimators':500,'eta':0.01,'max-depth':6,'subsample':0.8, 'colsample_bytree':0.7,'num_class': 12} , testsize=0.1, random_state=rs) 
+    cr.add_case('m child w: 20',train[feat],y,"xgb",{'min_child_weight': 20,'seed':rs, 'n_estimators':500,'eta':0.01,'max-depth':6,'subsample':0.8, 'colsample_bytree':0.7,'num_class': 12} , testsize=0.1, random_state=rs) 
     
     cr.run_cases()
 
@@ -115,8 +130,8 @@ if __name__ == "__main__":
     train['close_to_city'] = train[close_cols].sum(axis=1)
     test['close_to_city'] = test[close_cols].sum(axis=1)
     
-    
-    compare_effect_geo()
+    compare_effect_min_child_weight()
+    #compare_effect_geo()
     # Hardly any difference (freq encoding slightly better)
     #compare_phone_brand_encoding()
     

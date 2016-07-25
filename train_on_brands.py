@@ -91,7 +91,33 @@ def compare_phone_brand_encoding():
     cases.append( ("onehot freq enco", X_train, y_train, X_val, y_val, params, "xgb") )
     
     #run_cases(cases,"Comparison phone brand model encoding") 
-
+def compare_phone_brand_encoding_new(): 
+    params = {'seed':rs, 'n_estimators':600,'eta':0.01,'max-depth':6,'subsample':0.8, 'colsample_bytree':0.7, "eval_metric": "mlogloss","objective": "multi:softprob", "num_class": 12}  
+    
+    cr = CaseRunner('compare_encoding', outputdir)
+    
+    cr.submit_to_kaggle = True
+    
+    
+    fea_files = ['feat_brands_labelencoded.csv','feat_brands_brand_onehotencoded.csv', \
+                 'feat_brands_both_separate_onehotencoded.csv','feat_brands_both_combined_onehotencoded.csv']
+                 
+    for fea_file in fea_files:
+        feat = pd.read_csv('./data/' + fea_file, dtype={'device_id': np.str})
+        df = pd.merge(train, feat, how='left', on='device_id')
+        df.fillna(-1, inplace=True)
+        
+        X_test = pd.merge(test, feat, how='left', on='device_id').drop('device_id',axis=1)
+        
+#        print fea_file        
+#        print df.shape
+#        print df.columns
+#        print df.drop(['device_id','age','group','gender'],axis=1).head()
+#        print ''
+        cr.add_case(fea_file,df.drop(['device_id','age','group','gender'],axis=1),y,"xgb",params, testsize=0.1, random_state=rs, X_test=X_test, ids_test=x_test)
+    
+    cr.run_cases()
+    
 def compare_gbtree_linear():
     params = {'seed':rs, 
         'n_estimators':60,
@@ -119,8 +145,6 @@ if __name__ == "__main__":
     outputdir = './report_brands/'
     rs = 123
     
-    upload_to_kaggle = False
-    
     ylim_logloss = [2.2,2.6]
     
     hdlist = ['device_id', 'F23-', 'F24-26', 'F27-28', 'F29-32', 'F33-42','F43+', 
@@ -136,27 +160,27 @@ if __name__ == "__main__":
    
     print('Read train...')
     train = pd.read_csv(inputdir + 'gender_age_train.csv', dtype={'device_id': np.str})
-    train = map_column(train, 'gender')
+    #train = map_column(train, 'gender')
     train = map_column(train, 'group')
-    train = pd.merge(train, pbd, how='left', on='device_id', left_index=True)
-    train.fillna(-1, inplace=True)
+    #train = pd.merge(train, pbd, how='left', on='device_id', left_index=True)
+    #train.fillna(-1, inplace=True)
     
     print('Read test...')
     test = pd.read_csv(inputdir + 'gender_age_test.csv', dtype={'device_id': np.str})
-    test = pd.merge(test, pbd, how='left', on='device_id', left_index=True)
-    test.fillna(-1, inplace=True)
+    #test = pd.merge(test, pbd, how='left', on='device_id', left_index=True)
+    #test.fillna(-1, inplace=True)
     
-    X = train[['phone_brand','device_model']]
+    #X = train[['phone_brand','device_model']]
     y = train['group']
     
-    X_test = test[['phone_brand','device_model']]
+    #X_test = test[['phone_brand','device_model']]
     x_test = test['device_id']
     
     
     # Hardly any difference (freq encoding slightly better)
     #compare_phone_brand_encoding()
     
-    compare_gbtree_linear()
+    compare_phone_brand_encoding_new()
     
     
 

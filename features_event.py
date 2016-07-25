@@ -19,6 +19,7 @@ def unpack_date(df, date_col):
     
     return df
     
+    
 def calculate_event_features(df_in):
     
     df_out = pd.DataFrame(index=df_in['device_id'].unique())
@@ -73,6 +74,8 @@ if __name__ == "__main__":
     # Much faster than dateparser!
     events['timestamp'] = pd.to_datetime(events['timestamp'])
     events = unpack_date(events, 'timestamp')
+    
+    #split_events_per_timeunit()
     
     print('Calculating features...')
     event_features = calculate_event_features(events)
